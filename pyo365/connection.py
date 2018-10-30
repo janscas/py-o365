@@ -239,7 +239,7 @@ class Connection:
         self.auth = credentials
         self.scopes = scopes
         self.store_token = True
-        self.token_path = Path() / (token_file_name if token_file_name else self._default_token_path)
+        self.token_path = (Path() / token_file_name) if token_file_name else self._default_token_path
         self.token = None
 
         self.session = None  # requests Oauth2Session object
@@ -500,7 +500,7 @@ class Connection:
         """
 
         if not token_path:
-            token_path = self._default_token_path
+            token_path = self.token_path or self._default_token_path
         else:
             if not isinstance(token_path, Path):
                 raise ValueError('token_path must be a valid Path from pathlib')
@@ -517,7 +517,7 @@ class Connection:
         """
 
         if not token_path:
-            token_path = self._default_token_path
+            token_path = self.token_path or self._default_token_path
         else:
             if not isinstance(token_path, Path):
                 raise ValueError('token_path must be a valid Path from pathlib')
@@ -535,7 +535,7 @@ class Connection:
         """
 
         if not token_path:
-            token_path = self._default_token_path
+            token_path = self.token_path or self._default_token_path
         else:
             if not isinstance(token_path, Path):
                 raise ValueError('token_path must be a valid Path from pathlib')

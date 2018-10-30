@@ -184,7 +184,7 @@ class Pagination(ApiComponent):
         data = data.get('value', [])
         if self.constructor:
             # Everything received from the cloud must be passed with self._cloud_data_key
-            if callable(self.constructor):
+            if callable(self.constructor) and not isinstance(self.constructor, type):
                 self.data = [self.constructor(value)(parent=self.parent, **{self._cloud_data_key: value}) for value in data]
             else:
                 self.data = [self.constructor(parent=self.parent, **{self._cloud_data_key: value}) for value in data]
