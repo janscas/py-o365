@@ -356,7 +356,7 @@ class Connection:
 
         :param token_path: Only oauth: full path to where the token should be load from
         """
-        self.token = self.token or self._load_token(token_path)
+        self.token = self.token or self._load_token(token_path or self.token_path)
 
         if self.token:
             client_id, _ = self.auth
