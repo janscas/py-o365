@@ -37,7 +37,7 @@ class Contact(ApiComponent, AttachableMixin, HandleRecipientsMixin):
         self.con = parent.con if parent else con
 
         # Choose the main_resource passed in kwargs over the parent main_resource
-        main_resource = kwargs.pop('main_resource', None) or getattr(parent, 'main_resource', None) if parent else None
+        main_resource = kwargs.pop('main_resource', None) or (getattr(parent, 'main_resource', None) if parent else None)
         super().__init__(protocol=parent.protocol if parent else kwargs.get('protocol'), main_resource=main_resource)
 
         cloud_data = kwargs.get(self._cloud_data_key, {})
