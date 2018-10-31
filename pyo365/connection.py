@@ -45,6 +45,8 @@ DEFAULT_SCOPES = {
     'sharepoint_dl': ['Sites.ReadWrite.All'],
 }
 
+DEFAULT_SCOPES_OFFICE365 = {scope: value for scope, value in DEFAULT_SCOPES.items() if scope not in {'onedrive', 'sharepoint_dl'}}
+
 
 class Protocol:
     """ Base class for all protocols """
@@ -191,7 +193,7 @@ class MSOffice365Protocol(Protocol):
 
     _protocol_url = 'https://outlook.office.com/api/'
     _oauth_scope_prefix = 'https://outlook.office.com/'
-    _oauth_scopes = DEFAULT_SCOPES
+    _oauth_scopes = DEFAULT_SCOPES_OFFICE365
 
     def __init__(self, api_version='v2.0', default_resource=ME_RESOURCE, **kwargs):
         super().__init__(protocol_url=self._protocol_url, api_version=api_version,
@@ -558,7 +560,10 @@ def oauth_authentication_flow(client_id, client_secret, scopes=None, protocol=No
 
     credentials = (client_id, client_secret)
 
-    protocol = protocol or MSGraphProtocol()
+    protocol = protocol or MSGraphProtocol
+
+    if not isinstance(protocol, Protocol):
+        protocol = protocol()
 
     con = Connection(credentials, scopes=protocol.get_scopes_for(scopes), **kwargs)
 
