@@ -14,7 +14,8 @@ SIZE_THERSHOLD = 1024 * 1024 * 2  # 2 MB
 UPLOAD_SIZE_LIMIT_SIMPLE = 1024 * 1024 * 4  # 4 MB
 UPLOAD_SIZE_LIMIT_SESSION = 1024 * 1024 * 60  # 60 MB
 CHUNK_SIZE_BASE = 1024 * 320  # 320 Kb
-DEFAULT_UPLOAD_CHUNK_SIZE = 1024 * 1024 * 5  # 5 MB --> Must be a multiple of CHUNK_SIZE_BASE
+# 5 MB --> Must be a multiple of CHUNK_SIZE_BASE
+DEFAULT_UPLOAD_CHUNK_SIZE = 1024 * 1024 * 5
 ALLOWED_PDF_EXTENSIONS = {'.csv', '.doc', '.docx', '.odp', '.ods', '.odt', '.pot', '.potm', '.potx',
                           '.pps', '.ppsx', '.ppsxm', '.ppt', '.pptm', '.pptx', '.rtf', '.xls', '.xlsx'}
 
@@ -47,7 +48,8 @@ class DownloadableMixin:
         name = name or self.name
         to_path = to_path / name
 
-        url = self.build_url(self._endpoints.get('download').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'download').format(id=self.object_id))
 
         try:
             if chunk_size is None:
@@ -60,7 +62,8 @@ class DownloadableMixin:
             elif isinstance(chunk_size, int):
                 stream = True
             else:
-                raise ValueError("Argument chunk_size must be either 'auto' or any integer number representing bytes")
+                raise ValueError(
+                    "Argument chunk_size must be either 'auto' or any integer number representing bytes")
 
             params = {}
             if convert_to_pdf and Path(name).suffix in ALLOWED_PDF_EXTENSIONS:
@@ -68,7 +71,8 @@ class DownloadableMixin:
 
             with self.con.get(url, stream=stream, params=params) as response:
                 if not response:
-                    log.debug('Donwloading driveitem Request failed: {}'.format(response.reason))
+                    log.debug('Donwloading driveitem Request failed: {}'.format(
+                        response.reason))
                     return False
                 with to_path.open(mode='wb') as output:
                     if stream:
@@ -78,7 +82,8 @@ class DownloadableMixin:
                     else:
                         output.write(response.content)
         except Exception as e:
-            log.error('Error downloading driveitem {}. Error: {}'.format(self.name, str(e)))
+            log.error('Error downloading driveitem {}. Error: {}'.format(
+                self.name, str(e)))
             return False
 
         return True
@@ -100,15 +105,18 @@ class CopyOperation(ApiComponent):
         self.parent = parent  # parent will be allways a DriveItem
 
         # Choose the main_resource passed in kwargs over the parent main_resource
-        main_resource = kwargs.pop('main_resource', None) or getattr(parent, 'main_resource', None) if parent else None
-        super().__init__(protocol=parent.protocol if parent else kwargs.get('protocol'), main_resource=main_resource)
+        main_resource = kwargs.pop('main_resource', None) or getattr(
+            parent, 'main_resource', None) if parent else None
+        super().__init__(protocol=parent.protocol if parent else kwargs.get(
+            'protocol'), main_resource=main_resource)
 
         self.monitor_url = kwargs.get('monitor_url', None)
         self.item_id = kwargs.get('item_id', None)
         if self.monitor_url is None and self.item_id is None:
             raise ValueError('Must provide a valid monitor_url or item_id')
         if self.monitor_url is not None and self.item_id is not None:
-            raise ValueError('Must provide a valid monitor_url or item_id, but not both')
+            raise ValueError(
+                'Must provide a valid monitor_url or item_id, but not both')
 
         if self.item_id:
             self.status = 'completed'
@@ -129,7 +137,8 @@ class CopyOperation(ApiComponent):
         data = response.json()
 
         self.status = data.get('status', 'inProgress')
-        self.completition_percentage = data.get(self._cc('percentageComplete'), 0)
+        self.completition_percentage = data.get(
+            self._cc('percentageComplete'), 0)
         self.item_id = data.get(self._cc('resourceId'), None)
 
         return self.item_id is not None
@@ -168,10 +177,13 @@ class DriveItemVersion(ApiComponent, DownloadableMixin):
 
         protocol = parent.protocol if parent else kwargs.get('protocol')
         # Choose the main_resource passed in kwargs over the parent main_resource
-        main_resource = kwargs.pop('main_resource', None) or getattr(parent, 'main_resource', None) if parent else None
+        main_resource = kwargs.pop('main_resource', None) or getattr(
+            parent, 'main_resource', None) if parent else None
 
-        resource_prefix = '/items/{item_id}'.format(item_id=self._parent.object_id)
-        main_resource = '{}{}'.format(main_resource or (protocol.default_resource if protocol else ''), resource_prefix)
+        resource_prefix = '/items/{item_id}'.format(
+            item_id=self._parent.object_id)
+        main_resource = '{}{}'.format(main_resource or (
+            protocol.default_resource if protocol else ''), resource_prefix)
         super().__init__(protocol=protocol, main_resource=main_resource)
 
         cloud_data = kwargs.get(self._cloud_data_key, {})
@@ -181,10 +193,13 @@ class DriveItemVersion(ApiComponent, DownloadableMixin):
         self.name = self.object_id
         modified = cloud_data.get(self._cc('lastModifiedDateTime'), None)
         local_tz = self.protocol.timezone
-        self.modified = parse(modified).astimezone(local_tz) if modified else None
+        self.modified = parse(modified).astimezone(
+            local_tz) if modified else None
         self.size = cloud_data.get('size', 0)
-        modified_by = cloud_data.get(self._cc('lastModifiedBy'), {}).get('user', None)
-        self.modified_by = Contact(con=self.con, protocol=self.protocol, **{self._cloud_data_key: modified_by}) if modified_by else None
+        modified_by = cloud_data.get(
+            self._cc('lastModifiedBy'), {}).get('user', None)
+        self.modified_by = Contact(con=self.con, protocol=self.protocol,
+                                   **{self._cloud_data_key: modified_by}) if modified_by else None
 
     def __str__(self):
         return self.__repr__()
@@ -197,7 +212,8 @@ class DriveItemVersion(ApiComponent, DownloadableMixin):
         Restores this DriveItem Version.
         You can not restore the current version (last one).
         """
-        url = self.build_url(self._endpoints.get('restore').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'restore').format(id=self.object_id))
 
         response = self.con.post(url)
 
@@ -222,7 +238,8 @@ class DriveItemPermission(ApiComponent):
         self.con = parent.con if parent else con
         self._parent = parent if isinstance(parent, DriveItem) else None
         # Choose the main_resource passed in kwargs over the parent main_resource
-        main_resource = kwargs.pop('main_resource', None) or getattr(parent, 'main_resource', None) if parent else None
+        main_resource = kwargs.pop('main_resource', None) or getattr(
+            parent, 'main_resource', None) if parent else None
         protocol = parent.protocol if parent else kwargs.get('protocol')
         super().__init__(protocol=protocol, main_resource=main_resource)
 
@@ -244,12 +261,15 @@ class DriveItemPermission(ApiComponent):
             self.permission_type = 'invitation'
             self.share_email = invitation.get('email', '')
             invited_by = invitation.get('invitedBy', {})
-            self.invited_by = invited_by.get('user', {}).get(self._cc('displayName'), None) or invited_by.get('application', {}).get(self._cc('displayName'), None)
-            self.require_sign_in = invitation.get(self._cc('signInRequired'), True)
+            self.invited_by = invited_by.get('user', {}).get(self._cc(
+                'displayName'), None) or invited_by.get('application', {}).get(self._cc('displayName'), None)
+            self.require_sign_in = invitation.get(
+                self._cc('signInRequired'), True)
 
         self.roles = cloud_data.get(self._cc('roles'), [])
         granted_to = cloud_data.get(self._cc('grantedTo'), {})
-        self.granted_to = granted_to.get('user', {}).get(self._cc('displayName')) or granted_to.get('application', {}).get(self._cc('displayName'))
+        self.granted_to = granted_to.get('user', {}).get(self._cc(
+            'displayName')) or granted_to.get('application', {}).get(self._cc('displayName'))
         self.share_id = cloud_data.get(self._cc('shareId'), None)
 
     def __str__(self):
@@ -264,7 +284,8 @@ class DriveItemPermission(ApiComponent):
         if not self.object_id:
             return False
 
-        url = self.build_url(self._endpoints.get('permission').format(driveitem_id=self.driveitem_id, id=self.object_id))
+        url = self.build_url(self._endpoints.get('permission').format(
+            driveitem_id=self.driveitem_id, id=self.object_id))
 
         if roles in {'view', 'read'}:
             data = {'roles': ['read']}
@@ -285,7 +306,8 @@ class DriveItemPermission(ApiComponent):
         if not self.object_id:
             return False
 
-        url = self.build_url(self._endpoints.get('permission').format(driveitem_id=self.driveitem_id, id=self.object_id))
+        url = self.build_url(self._endpoints.get('permission').format(
+            driveitem_id=self.driveitem_id, id=self.object_id))
 
         response = self.con.delete(url)
         if not response:
@@ -319,19 +341,24 @@ class DriveItem(ApiComponent):
         assert parent or con, 'Need a parent or a connection'
         self.con = parent.con if parent else con
         self._parent = parent if isinstance(parent, DriveItem) else None
-        self.drive = parent if isinstance(parent, Drive) else (parent.drive if isinstance(parent.drive, Drive) else kwargs.get('drive', None))
+        self.drive = parent if isinstance(parent, Drive) else (
+            parent.drive if isinstance(parent.drive, Drive) else kwargs.get('drive', None))
 
         # Choose the main_resource passed in kwargs over the parent main_resource
-        main_resource = kwargs.pop('main_resource', None) or getattr(parent, 'main_resource', None) if parent else None
+        main_resource = kwargs.pop('main_resource', None) or getattr(
+            parent, 'main_resource', None) if parent else None
 
         protocol = parent.protocol if parent else kwargs.get('protocol')
         if parent and not isinstance(parent, DriveItem):
             # parent is a Drive so append the drive route to the main_resource
-            drive_id = (None if parent.object_id == 'root' else parent.object_id) or None
+            drive_id = (None if parent.object_id ==
+                        'root' else parent.object_id) or None
 
             # prefix with the current known drive or the default one
-            resource_prefix = '/drives/{drive_id}'.format(drive_id=drive_id) if drive_id else '/drive'
-            main_resource = '{}{}'.format(main_resource or (protocol.default_resource if protocol else ''), resource_prefix)
+            resource_prefix = '/drives/{drive_id}'.format(
+                drive_id=drive_id) if drive_id else '/drive'
+            main_resource = '{}{}'.format(main_resource or (
+                protocol.default_resource if protocol else ''), resource_prefix)
 
         super().__init__(protocol=protocol, main_resource=main_resource)
 
@@ -340,16 +367,21 @@ class DriveItem(ApiComponent):
         self.object_id = cloud_data.get(self._cc('id'))
         self.name = cloud_data.get(self._cc('name'), '')
         self.web_url = cloud_data.get(self._cc('webUrl'))
-        created_by = cloud_data.get(self._cc('createdBy'), {}).get('user', None)
-        self.created_by = Contact(con=self.con, protocol=self.protocol, **{self._cloud_data_key: created_by}) if created_by else None
-        modified_by = cloud_data.get(self._cc('lastModifiedBy'), {}).get('user', None)
-        self.modified_by = Contact(con=self.con, protocol=self.protocol, **{self._cloud_data_key: modified_by}) if modified_by else None
+        created_by = cloud_data.get(
+            self._cc('createdBy'), {}).get('user', None)
+        self.created_by = Contact(con=self.con, protocol=self.protocol,
+                                  **{self._cloud_data_key: created_by}) if created_by else None
+        modified_by = cloud_data.get(
+            self._cc('lastModifiedBy'), {}).get('user', None)
+        self.modified_by = Contact(con=self.con, protocol=self.protocol,
+                                   **{self._cloud_data_key: modified_by}) if modified_by else None
 
         created = cloud_data.get(self._cc('createdDateTime'), None)
         modified = cloud_data.get(self._cc('lastModifiedDateTime'), None)
         local_tz = self.protocol.timezone
         self.created = parse(created).astimezone(local_tz) if created else None
-        self.modified = parse(modified).astimezone(local_tz) if modified else None
+        self.modified = parse(modified).astimezone(
+            local_tz) if modified else None
 
         self.description = cloud_data.get(self._cc('description'), '')
         self.size = cloud_data.get(self._cc('size'), 0)
@@ -360,7 +392,8 @@ class DriveItem(ApiComponent):
         self.drive_id = parent_reference.get(self._cc('driveId'), None)
 
         remote_item = cloud_data.get(self._cc('remoteItem'), None)
-        self.remote_item = self._classifier(remote_item)(parent=self, **{self._cloud_data_key: remote_item}) if remote_item else None
+        self.remote_item = self._classifier(remote_item)(
+            parent=self, **{self._cloud_data_key: remote_item}) if remote_item else None
 
         # Thumbnails
         self.thumbnails = cloud_data.get(self._cc('thumbnails'), [])
@@ -423,7 +456,8 @@ class DriveItem(ApiComponent):
         if not self.object_id:
             return []
 
-        url = self.build_url(self._endpoints.get('thumbnails').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'thumbnails').format(id=self.object_id))
 
         params = {}
         if size is not None:
@@ -448,9 +482,11 @@ class DriveItem(ApiComponent):
         if not self.object_id:
             return False
 
-        url = self.build_url(self._endpoints.get('item').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'item').format(id=self.object_id))
 
-        data = {self._cc(key): value for key, value in kwargs.items() if key in {'name', 'description'}}  # convert keys to protocol casing
+        data = {self._cc(key): value for key, value in kwargs.items() if key in {
+            'name', 'description'}}  # convert keys to protocol casing
         if not data:
             return False
 
@@ -473,7 +509,8 @@ class DriveItem(ApiComponent):
         if not self.object_id:
             return False
 
-        url = self.build_url(self._endpoints.get('item').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'item').format(id=self.object_id))
 
         response = self.con.delete(url)
         if not response:
@@ -503,12 +540,14 @@ class DriveItem(ApiComponent):
             raise ValueError('Target must be a Folder or Drive')
 
         if not self.object_id or not target_id:
-            raise ValueError('Both self, and target must have a valid object_id.')
+            raise ValueError(
+                'Both self, and target must have a valid object_id.')
 
         if target_id == 'root':
             raise ValueError("When moving, target id can't be 'root'")
 
-        url = self.build_url(self._endpoints.get('item').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'item').format(id=self.object_id))
 
         data = {'parentReference': {'id': target_id}}
 
@@ -550,7 +589,8 @@ class DriveItem(ApiComponent):
         if target_id == 'root':
             raise ValueError("When copying, target id can't be 'root'")
 
-        url = self.build_url(self._endpoints.get('copy').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'copy').format(id=self.object_id))
 
         if target_id and drive_id:
             data = {'parentReference': {'id': target_id, 'driveId': drive_id}}
@@ -583,7 +623,8 @@ class DriveItem(ApiComponent):
 
         if not self.object_id:
             return []
-        url = self.build_url(self._endpoints.get('versions').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'versions').format(id=self.object_id))
 
         response = self.con.get(url)
         if not response:
@@ -599,7 +640,8 @@ class DriveItem(ApiComponent):
         if not self.object_id:
             return None
 
-        url = self.build_url(self._endpoints.get('version').format(id=self.object_id, version_id=version_id))
+        url = self.build_url(self._endpoints.get('version').format(
+            id=self.object_id, version_id=version_id))
 
         response = self.con.get(url)
         if not response:
@@ -620,7 +662,8 @@ class DriveItem(ApiComponent):
         if not self.object_id:
             return None
 
-        url = self.build_url(self._endpoints.get('share_link').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'share_link').format(id=self.object_id))
 
         data = {
             'type': share_type,
@@ -658,15 +701,18 @@ class DriveItem(ApiComponent):
                 elif isinstance(x, Contact):
                     to.append({'email': x.main_email})
                 else:
-                    raise ValueError('All the recipients must be either strings or Contacts')
+                    raise ValueError(
+                        'All the recipients must be either strings or Contacts')
         elif isinstance(recipients, str):
             to.append({'email': recipients})
         elif isinstance(recipients, Contact):
             to.append({'email': recipients.main_email})
         else:
-            raise ValueError('All the recipients must be either strings or Contacts')
+            raise ValueError(
+                'All the recipients must be either strings or Contacts')
 
-        url = self.build_url(self._endpoints.get('share_invite').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'share_invite').format(id=self.object_id))
 
         data = {
             'recipients': to,
@@ -678,7 +724,8 @@ class DriveItem(ApiComponent):
         elif share_type == {'edit', 'write'}:
             data['roles'] = ['write']
         else:
-            raise ValueError('"{}" is not a valid share_type'.format(share_type))
+            raise ValueError(
+                '"{}" is not a valid share_type'.format(share_type))
         if send_email and message:
             data['message'] = message
 
@@ -695,7 +742,8 @@ class DriveItem(ApiComponent):
         if not self.object_id:
             return []
 
-        url = self.build_url(self._endpoints.get('permissions').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'permissions').format(id=self.object_id))
 
         response = self.con.get(url)
         if not response:
@@ -714,7 +762,8 @@ class File(DriveItem, DownloadableMixin):
         super().__init__(**kwargs)
         cloud_data = kwargs.get(self._cloud_data_key, {})
 
-        self.mime_type = cloud_data.get(self._cc('file'), {}).get(self._cc('mimeType'), None)
+        self.mime_type = cloud_data.get(
+            self._cc('file'), {}).get(self._cc('mimeType'), None)
 
 
 class Image(File):
@@ -744,11 +793,14 @@ class Photo(Image):
 
         taken = photo.get(self._cc('takenDateTime'), None)
         local_tz = self.protocol.timezone
-        self.taken_datetime = parse(taken).astimezone(local_tz) if taken else None
+        self.taken_datetime = parse(taken).astimezone(
+            local_tz) if taken else None
         self.camera_make = photo.get(self._cc('cameraMake'), None)
         self.camera_model = photo.get(self._cc('cameraModel'), None)
-        self.exposure_denominator = photo.get(self._cc('exposureDenominator'), None)
-        self.exposure_numerator = photo.get(self._cc('exposureNumerator'), None)
+        self.exposure_denominator = photo.get(
+            self._cc('exposureDenominator'), None)
+        self.exposure_numerator = photo.get(
+            self._cc('exposureNumerator'), None)
         self.fnumber = photo.get(self._cc('fNumber'), None)
         self.focal_length = photo.get(self._cc('focalLength'), None)
         self.iso = photo.get(self._cc('iso'), None)
@@ -761,13 +813,16 @@ class Folder(DriveItem):
         super().__init__(*args, **kwargs)
         cloud_data = kwargs.get(self._cloud_data_key, {})
 
-        self.child_count = cloud_data.get(self._cc('folder'), {}).get(self._cc('childCount'), 0)
-        self.special_folder = cloud_data.get(self._cc('specialFolder'), {}).get('name', None)
+        self.child_count = cloud_data.get(
+            self._cc('folder'), {}).get(self._cc('childCount'), 0)
+        self.special_folder = cloud_data.get(
+            self._cc('specialFolder'), {}).get('name', None)
 
     def get_items(self, limit=None, *, query=None, order_by=None, batch=None):
         """ Returns all the items inside this folder """
 
-        url = self.build_url(self._endpoints.get('list_items').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'list_items').format(id=self.object_id))
 
         if limit is None or limit > self.protocol.max_top_value:
             batch = self.protocol.max_top_value
@@ -779,7 +834,8 @@ class Folder(DriveItem):
 
         if query:
             if query.has_filters:
-                warnings.warn('Filters are not allowed by the Api Provider in this method')
+                warnings.warn(
+                    'Filters are not allowed by the Api Provider in this method')
                 query.clear_filters()
             if isinstance(query, str):
                 params['$filter'] = query
@@ -793,7 +849,8 @@ class Folder(DriveItem):
         data = response.json()
 
         # Everything received from the cloud must be passed with self._cloud_data_key
-        items = [self._classifier(item)(parent=self, **{self._cloud_data_key: item}) for item in data.get('value', [])]
+        items = [self._classifier(item)(
+            parent=self, **{self._cloud_data_key: item}) for item in data.get('value', [])]
         next_link = data.get(NEXT_LINK_KEYWORD, None)
         if batch and next_link:
             return Pagination(parent=self, data=items, constructor=self._classifier,
@@ -811,14 +868,16 @@ class Folder(DriveItem):
         if not self.object_id:
             return None
 
-        url = self.build_url(self._endpoints.get('list_items').format(id=self.object_id))
+        url = self.build_url(self._endpoints.get(
+            'list_items').format(id=self.object_id))
 
-        data = {'name': name}
+        data = {'name': name,
+                'folder': {}}
         if description:
             data['description'] = description
 
         response = self.con.post(url, data=data)
-        if not response:
+        if not response.ok:
             return None
 
         folder = response.json()
@@ -852,7 +911,8 @@ class Folder(DriveItem):
         if not isinstance(search_text, str) or not search_text:
             raise ValueError('Provide a valid search_text')
 
-        url = self.build_url(self._endpoints.get('search').format(id=self.object_id, search_text=search_text))
+        url = self.build_url(self._endpoints.get('search').format(
+            id=self.object_id, search_text=search_text))
 
         if limit is None or limit > self.protocol.max_top_value:
             batch = self.protocol.max_top_value
@@ -864,7 +924,8 @@ class Folder(DriveItem):
 
         if query:
             if query.has_filters:
-                warnings.warn('Filters are not allowed by the Api Provider in this method')
+                warnings.warn(
+                    'Filters are not allowed by the Api Provider in this method')
                 query.clear_filters()
             if isinstance(query, str):
                 params['$filter'] = query
@@ -878,7 +939,8 @@ class Folder(DriveItem):
         data = response.json()
 
         # Everything received from the cloud must be passed with self._cloud_data_key
-        items = [self._classifier(item)(parent=self, **{self._cloud_data_key: item}) for item in data.get('value', [])]
+        items = [self._classifier(item)(
+            parent=self, **{self._cloud_data_key: item}) for item in data.get('value', [])]
         next_link = data.get(NEXT_LINK_KEYWORD, None)
         if batch and next_link:
             return Pagination(parent=self, data=items, constructor=self._classifier,
@@ -906,7 +968,8 @@ class Folder(DriveItem):
 
         if file_size <= UPLOAD_SIZE_LIMIT_SIMPLE:
             # Simple Upload
-            url = self.build_url(self._endpoints.get('simple_upload').format(id=self.object_id, filename=item.name))
+            url = self.build_url(self._endpoints.get('simple_upload').format(
+                id=self.object_id, filename=item.name))
             # headers = {'Content-type': 'text/plain'}
             headers = {'Content-type': 'application/octet-stream'}
             # headers = None
@@ -922,7 +985,8 @@ class Folder(DriveItem):
             return self._classifier(data)(parent=self, **{self._cloud_data_key: data})
         else:
             # Resumable Upload
-            url = self.build_url(self._endpoints.get('create_upload_session').format(id=self.object_id, filename=item.name))
+            url = self.build_url(self._endpoints.get('create_upload_session').format(
+                id=self.object_id, filename=item.name))
 
             response = self.con.post(url)
             if not response:
@@ -932,7 +996,8 @@ class Folder(DriveItem):
 
             upload_url = data.get(self._cc('uploadUrl'), None)
             if upload_url is None:
-                log.error('Create upload session response without upload_url for file {}'.format(item.name))
+                log.error(
+                    'Create upload session response without upload_url for file {}'.format(item.name))
                 return None
 
             current_bytes = 0
@@ -950,7 +1015,8 @@ class Folder(DriveItem):
                     current_bytes += transfer_bytes
 
                     # this request mut NOT send the authorization header. so we use a naive simple request.
-                    response = self.con.naive_request(upload_url, 'PUT', data=data, headers=headers)
+                    response = self.con.naive_request(
+                        upload_url, 'PUT', data=data, headers=headers)
                     if not response:
                         return None
 
@@ -988,8 +1054,10 @@ class Drive(ApiComponent):
         self.parent = parent if isinstance(parent, Drive) else None
 
         # Choose the main_resource passed in kwargs over the parent main_resource
-        main_resource = kwargs.pop('main_resource', None) or getattr(parent, 'main_resource', None) if parent else None
-        super().__init__(protocol=parent.protocol if parent else kwargs.get('protocol'), main_resource=main_resource)
+        main_resource = kwargs.pop('main_resource', None) or getattr(
+            parent, 'main_resource', None) if parent else None
+        super().__init__(protocol=parent.protocol if parent else kwargs.get(
+            'protocol'), main_resource=main_resource)
 
         self._update_data(kwargs)
 
@@ -997,20 +1065,23 @@ class Drive(ApiComponent):
         cloud_data = data.get(self._cloud_data_key, {})
 
         self.object_id = cloud_data.get(self._cc('id'))
-        self.name = cloud_data.get(self._cc('name'), data.get('name', ''))  # Fallback to manual drive
+        self.name = cloud_data.get(self._cc('name'), data.get(
+            'name', ''))  # Fallback to manual drive
         self.description = cloud_data.get(self._cc('description'))
         self.drive_type = cloud_data.get(self._cc('driveType'))
         self.web_url = cloud_data.get(self._cc('webUrl'))
 
         owner = cloud_data.get(self._cc('owner'), {}).get('user', None)
-        self.owner = Contact(con=self.con, protocol=self.protocol, **{self._cloud_data_key: owner}) if owner else None
+        self.owner = Contact(con=self.con, protocol=self.protocol,
+                             **{self._cloud_data_key: owner}) if owner else None
         self.quota = cloud_data.get(self._cc('quota'))  # dict
 
         created = cloud_data.get(self._cc('createdDateTime'), None)
         modified = cloud_data.get(self._cc('lastModifiedDateTime'), None)
         local_tz = self.protocol.timezone
         self.created = parse(created).astimezone(local_tz) if created else None
-        self.modified = parse(modified).astimezone(local_tz) if modified else None
+        self.modified = parse(modified).astimezone(
+            local_tz) if modified else None
 
     def __str__(self):
         return self.__repr__()
@@ -1022,7 +1093,8 @@ class Drive(ApiComponent):
         """ Returns the Root Folder of this drive """
         if self.object_id:
             # reference the current drive_id
-            url = self.build_url(self._endpoints.get('get_root_item').format(id=self.object_id))
+            url = self.build_url(self._endpoints.get(
+                'get_root_item').format(id=self.object_id))
         else:
             # we don't know the drive_id so go to the default drive
             url = self.build_url(self._endpoints.get('get_root_item_default'))
@@ -1049,7 +1121,8 @@ class Drive(ApiComponent):
 
         if query:
             if query.has_filters:
-                warnings.warn('Filters are not allowed by the Api Provider in this method')
+                warnings.warn(
+                    'Filters are not allowed by the Api Provider in this method')
                 query.clear_filters()
             if isinstance(query, str):
                 params['$filter'] = query
@@ -1063,7 +1136,8 @@ class Drive(ApiComponent):
         data = response.json()
 
         # Everything received from the cloud must be passed with self._cloud_data_key
-        items = [self._classifier(item)(parent=self, **{self._cloud_data_key: item}) for item in data.get('value', [])]
+        items = [self._classifier(item)(
+            parent=self, **{self._cloud_data_key: item}) for item in data.get('value', [])]
         next_link = data.get(NEXT_LINK_KEYWORD, None)
         if batch and next_link:
             return Pagination(parent=self, data=items, constructor=self._classifier,
@@ -1076,7 +1150,8 @@ class Drive(ApiComponent):
 
         if self.object_id:
             # reference the current drive_id
-            url = self.build_url(self._endpoints.get('list_items').format(id=self.object_id))
+            url = self.build_url(self._endpoints.get(
+                'list_items').format(id=self.object_id))
         else:
             # we don't know the drive_id so go to the default
             url = self.build_url(self._endpoints.get('list_items_default'))
@@ -1087,7 +1162,8 @@ class Drive(ApiComponent):
         """ Returns a collection of recently used DriveItems """
         if self.object_id:
             # reference the current drive_id
-            url = self.build_url(self._endpoints.get('recent').format(id=self.object_id))
+            url = self.build_url(self._endpoints.get(
+                'recent').format(id=self.object_id))
         else:
             # we don't know the drive_id so go to the default
             url = self.build_url(self._endpoints.get('recent_default'))
@@ -1099,7 +1175,8 @@ class Drive(ApiComponent):
 
         if self.object_id:
             # reference the current drive_id
-            url = self.build_url(self._endpoints.get('shared_with_me').format(id=self.object_id))
+            url = self.build_url(self._endpoints.get(
+                'shared_with_me').format(id=self.object_id))
         else:
             # we don't know the drive_id so go to the default
             url = self.build_url(self._endpoints.get('shared_with_me_default'))
@@ -1110,10 +1187,12 @@ class Drive(ApiComponent):
         """ Returns a DriveItem by it's Id"""
         if self.object_id:
             # reference the current drive_id
-            url = self.build_url(self._endpoints.get('get_item').format(id=self.object_id, item_id=item_id))
+            url = self.build_url(self._endpoints.get(
+                'get_item').format(id=self.object_id, item_id=item_id))
         else:
             # we don't know the drive_id so go to the default drive
-            url = self.build_url(self._endpoints.get('get_item_default').format(item_id=item_id))
+            url = self.build_url(self._endpoints.get(
+                'get_item_default').format(item_id=item_id))
 
         response = self.con.get(url)
         if not response:
@@ -1127,11 +1206,13 @@ class Drive(ApiComponent):
     def get_special_folder(self, name):
         """ Returns the specified Special Folder """
 
-        name = name if isinstance(name, OneDriveWellKnowFolderNames) else OneDriveWellKnowFolderNames(name)
+        name = name if isinstance(
+            name, OneDriveWellKnowFolderNames) else OneDriveWellKnowFolderNames(name)
 
         if self.object_id:
             # reference the current drive_id
-            url = self.build_url(self._endpoints.get('get_special').format(id=self.object_id))
+            url = self.build_url(self._endpoints.get(
+                'get_special').format(id=self.object_id))
         else:
             # we don't know the drive_id so go to the default
             url = self.build_url(self._endpoints.get('get_special_default'))
@@ -1163,7 +1244,8 @@ class Drive(ApiComponent):
         if self.object_id is None:
             url = self.build_url(self._endpoints.get('default_drive'))
         else:
-            url = self.build_url(self._endpoints.get('get_drive').format(id=self.object_id))
+            url = self.build_url(self._endpoints.get(
+                'get_drive').format(id=self.object_id))
 
         response = self.con.get(url)
         if not response:
@@ -1188,9 +1270,11 @@ class Drive(ApiComponent):
             raise ValueError('Provide a valid search_text')
 
         if self.object_id is None:
-            url = self.build_url(self._endpoints.get('search_default').format(search_text=search_text))
+            url = self.build_url(self._endpoints.get(
+                'search_default').format(search_text=search_text))
         else:
-            url = self.build_url(self._endpoints.get('search').format(id=self.object_id, search_text=search_text))
+            url = self.build_url(self._endpoints.get('search').format(
+                id=self.object_id, search_text=search_text))
 
         if limit is None or limit > self.protocol.max_top_value:
             batch = self.protocol.max_top_value
@@ -1202,7 +1286,8 @@ class Drive(ApiComponent):
 
         if query:
             if query.has_filters:
-                warnings.warn('Filters are not allowed by the Api Provider in this method')
+                warnings.warn(
+                    'Filters are not allowed by the Api Provider in this method')
                 query.clear_filters()
             if isinstance(query, str):
                 params['$filter'] = query
@@ -1216,7 +1301,8 @@ class Drive(ApiComponent):
         data = response.json()
 
         # Everything received from the cloud must be passed with self._cloud_data_key
-        items = [self._classifier(item)(parent=self, **{self._cloud_data_key: item}) for item in data.get('value', [])]
+        items = [self._classifier(item)(
+            parent=self, **{self._cloud_data_key: item}) for item in data.get('value', [])]
         next_link = data.get(NEXT_LINK_KEYWORD, None)
         if batch and next_link:
             return Pagination(parent=self, data=items, constructor=self._classifier,
@@ -1240,12 +1326,15 @@ class Storage(ApiComponent):
         self.con = parent.con if parent else con
 
         # Choose the main_resource passed in kwargs over the parent main_resource
-        main_resource = kwargs.pop('main_resource', None) or getattr(parent, 'main_resource', None) if parent else None
-        super().__init__(protocol=parent.protocol if parent else kwargs.get('protocol'), main_resource=main_resource)
+        main_resource = kwargs.pop('main_resource', None) or getattr(
+            parent, 'main_resource', None) if parent else None
+        super().__init__(protocol=parent.protocol if parent else kwargs.get(
+            'protocol'), main_resource=main_resource)
 
         cloud_data = kwargs.get(self._cloud_data_key, {})
 
-        self.name = cloud_data.get(self._cc('name'), kwargs.get('name', ''))  # Fallback to manual drive
+        self.name = cloud_data.get(self._cc('name'), kwargs.get(
+            'name', ''))  # Fallback to manual drive
 
     def __str__(self):
         return self.__repr__()
@@ -1281,7 +1370,8 @@ class Storage(ApiComponent):
         if not drive_id:
             return None
 
-        url = self.build_url(self._endpoints.get('get_drive').format(id=drive_id))
+        url = self.build_url(self._endpoints.get(
+            'get_drive').format(id=drive_id))
 
         response = self.con.get(url)
         if not response:
@@ -1319,7 +1409,8 @@ class Storage(ApiComponent):
         data = response.json()
 
         # Everything received from the cloud must be passed with self._cloud_data_key
-        drives = [self.drive_constructor(parent=self, **{self._cloud_data_key: drive}) for drive in data.get('value', [])]
+        drives = [self.drive_constructor(
+            parent=self, **{self._cloud_data_key: drive}) for drive in data.get('value', [])]
         next_link = data.get(NEXT_LINK_KEYWORD, None)
         if batch and next_link:
             return Pagination(parent=self, data=drives, constructor=self.drive_constructor,
