@@ -295,7 +295,7 @@ class Message(ApiComponent, AttachableMixin, HandleRecipientsMixin):
                 self.__body = ''
             else:
                 soup = bs(self.__body, 'html.parser')
-                soup.body.insert(0, value)
+                soup.body.insert(0, bs(value, 'html.parser'))
                 self.__body = str(soup)
         else:
             self.__body = value

@@ -2,6 +2,8 @@
 A simple python library to interact with Microsoft Graph and Office 365 API
 """
 
+from .__version__ import __version__
+
 from .account import Account
 from .connection import Connection, Protocol, MSGraphProtocol, MSOffice365Protocol, oauth_authentication_flow
 from .mailbox import MailBox
