@@ -1,5 +1,15 @@
-# pyo365 - Microsoft Graph and Office 365 API made easy
+# This project has been merged into the original one. Check [O365](https://github.com/O365/python-o365) repository.
+ 
+## This fork is no longer maintained. Bugs, and improvements will occurr in [O365](https://github.com/O365/python-o365).
 
+<br>
+<br>
+
+___
+
+
+
+# pyo365 - Microsoft Graph and Office 365 API made easy
 This project aims is to make it easy to interact with Microsoft Graph and Office 365 Email, Contacts, Calendar, OneDrive, etc.
 
 This project is inspired on the super work done by [Toben Archer](https://github.com/Narcolapser) [Python-O365](https://github.com/Narcolapser/python-o365).
